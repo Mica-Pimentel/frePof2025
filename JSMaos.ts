@@ -26,6 +26,7 @@ const createGestureRecognizer = async () => {
       delegate: "GPU",
     },
     runningMode: runningMode,
+    
   });
   demosSection.classList.remove("invisible");
 };
