@@ -17,7 +17,7 @@ const createGestureRecognizer = async () => {
             delegate: "GPU",
         },
         runningMode: runningMode,
-        numHands: 4 // Altere para o número desejado de mãos
+        num, Hands: 4 // Altere para o número desejado de mãos
     });
     demosSection.classList.remove("invisible");
 };
