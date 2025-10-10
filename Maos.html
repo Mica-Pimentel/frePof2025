@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <link href="StyleMaos.css" rel="stylesheet" />
+    <script type="module" src="JSMaos.js"></script>
+
+    <section id="demos" class="invisible">
+      <div id="liveView" class="videoView">
+        <button id="webcamButton" class="mdc-button mdc-button--raised">
+          <span class="mdc-button__ripple"></span>
+          <span class="mdc-button__label">ENABLE WEBCAM</span>
+        </button>
+        <div style="position: relative">
+          <video id="webcam" autoplay playsinline></video>
+          <canvas
+            class="output_canvas"
+            id="output_canvas"
+            width="1280"
+            height="720"
+            style="position: absolute; left: 0px; top: 0px"
+          ></canvas>
+          <p id="gesture_output" class="output"></p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
