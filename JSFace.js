@@ -1,7 +1,6 @@
 import {
   FaceDetector,
-  FilesetResolver,
-  Detection
+  FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
 const demosSection = document.getElementById("demos");
@@ -127,7 +126,7 @@ function displayVideoDetections(detections) {
     children.push(highlighter);
     children.push(p);
     for (let keypoint of detection.keypoints) {
-      const keypointEl = document.createElement("spam");
+      const keypointEl = document.createElement("span");
       keypointEl.className = "key-point";
       keypointEl.style.top = `${keypoint.y * video.offsetHeight - 3}px`;
       keypointEl.style.left = `${
