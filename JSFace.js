@@ -15,7 +15,8 @@ const initializefaceDetector = async () => {
   faceDetector = await FaceDetector.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
-      delegate: "GPU"
+-      delegate: "GPU"
++      delegate: "CPU" // trocar para CPU se quiser evitar uso de WebGL/GPU
     },
     runningMode: runningMode
   });
