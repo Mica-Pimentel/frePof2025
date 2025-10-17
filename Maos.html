@@ -1,32 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="pt-br">
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
-  <body>
+    <title>Reconhecimento de Gestos</title>
     <link href="style.css" rel="stylesheet" />
     <script type="module" src="JSMaos.js"></script>
+</head>
+<body>
 
     <section id="demos" class="invisible">
-      <div id="liveView" class="videoView">
-        <button id="webcamButton" class="mdc-button mdc-button--raised">
-          <span class="mdc-button__ripple"></span>
-          <span class="mdc-button__label">ENABLE WEBCAM</span>
-        </button>
-        <div style="position: relative">
-          <video id="webcam" autoplay playsinline></video>
-          <canvas
-            class="output_canvas"
-            id="output_canvas"
-            width="1280"
-            height="720"
-            style="position: absolute; left: 0px; top: 0px"
-          ></canvas>
-          <p id="gesture_output" class="output"></p>
+
+        <h1>Reconhecimento de Gestos com as Mãos</h1>
+
+
+        <div id="liveView" class="videoView">
+            <button id="webcamButton" class="mdc-button mdc-button--raised">
+                <span class="mdc-button__label">ENABLE PREDICTIONS</span>
+            </button>
+            <div style="position: relative">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas
+                    class="output_canvas"
+                    id="output_canvas"
+                    width="1280"
+                    height="720"
+                ></canvas>
+                </div>
         </div>
-      </div>
+              <p id="hand_gesture_output" class="output" style="position: static; text-align: center; font-size: 1.2rem; margin: 1rem auto; display: block; white-space: pre-line; min-height: 80px;"></p>
+
+
     </section>
-  </body>
+
+</body>
 </html>
