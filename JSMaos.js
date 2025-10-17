@@ -1,14 +1,17 @@
-import { GestureRecognizer, FilesetResolver, DrawingUtils, } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+import { GestureRecognizer, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+
 const demosSection = document.getElementById("demos");
 let gestureRecognizer;
-let runningMode = "IMAGE";
+let runningMode = "VIDEO"; // Mudado para VIDEO para consistência
 let enableWebcamButton;
 let webcamRunning = false;
-const videoHeight = "360px";
-const videoWidth = "480px";
-// Before we can use HandLandmarker class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment to
-// get everything needed to run.
+
+const video = document.getElementById("webcam");
+const canvasElement = document.getElementById("output_canvas");
+const canvasCtx = canvasElement.getContext("2d");
+const gestureOutput = document.getElementById("gesture_output");
+
+// Função para criar o reconhecedor de gestos
 const createGestureRecognizer = async () => {
     const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
     gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
@@ -17,58 +20,53 @@ const createGestureRecognizer = async () => {
             delegate: "GPU",
         },
         runningMode: runningMode,
-        numHands: 2 // Altere para o número desejado de mãos
+        numHands: 2
     });
     demosSection.classList.remove("invisible");
 };
 createGestureRecognizer();
-const video = document.getElementById("webcam");
-const canvasElement = document.getElementById("output_canvas");
-const canvasCtx = canvasElement.getContext("2d");
-const gestureOutput = document.getElementById("gesture_output");
-// Check if webcam access is supported.
+
+// Verifica se o acesso à webcam é suportado
 function hasGetUserMedia() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
-// If webcam supported, add event listener to button for when user
-// wants to activate it.
+
 if (hasGetUserMedia()) {
     enableWebcamButton = document.getElementById("webcamButton");
     enableWebcamButton.addEventListener("click", enableCam);
+} else {
+    console.warn("getUserMedia() não é suportado pelo seu navegador");
 }
-else {
-    console.warn("getUserMedia() is not supported by your browser");
-}
-// Enable the live webcam view and start detection.
+
+// Ativa a visualização da webcam e inicia a detecção.
 function enableCam(event) {
     if (!gestureRecognizer) {
-        alert("Please wait for gestureRecognizer to load");
+        alert("Por favor, aguarde o modelo carregar.");
         return;
     }
     if (webcamRunning === true) {
         webcamRunning = false;
         enableWebcamButton.innerText = "ENABLE PREDICTIONS";
-    }
-    else {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        gestureOutput.style.display = "none";
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+    } else {
         webcamRunning = true;
         enableWebcamButton.innerText = "DISABLE PREDICTIONS";
+        const constraints = { video: true };
+        navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", predictWebcam);
+        });
     }
-    // getUsermedia parameters.
-    const constraints = {
-        video: true,
-    };
-    // Activate the webcam stream.
-    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-        video.srcObject = stream;
-        video.addEventListener("loadeddata", predictWebcam);
-    });
 }
+
 let lastVideoTime = -1;
 let results = undefined;
 async function predictWebcam() {
-    const webcamElement = document.getElementById("webcam");
     // Agora vamos começar a detectar o stream.
-    if (runningMode === "IMAGE") {
+    if (runningMode === "IMAGE") { // Garante que o modo está correto
         runningMode = "VIDEO";
         await gestureRecognizer.setOptions({ runningMode: "VIDEO" });
     }
@@ -83,46 +81,34 @@ async function predictWebcam() {
     const drawingUtils = new DrawingUtils(canvasCtx);
 
     // Ajusta o tamanho do canvas para o tamanho real do vídeo
-    canvasElement.style.height = video.videoHeight + "px";
-    webcamElement.style.height = video.videoHeight + "px";
-    canvasElement.style.width = video.videoWidth + "px";
-    webcamElement.style.width = video.videoWidth + "px";
-    
-    // Define as dimensões do canvas para desenho
-    canvasElement.width = video.videoWidth;
     canvasElement.height = video.videoHeight;
+    canvasElement.width = video.videoWidth;
 
     if (results.landmarks) {
         for (const landmarks of results.landmarks) {
-            drawingUtils.drawConnectors(
-                landmarks,
-                GestureRecognizer.HAND_CONNECTIONS,
-                {
-                    color: "#00FF00",
-                    lineWidth: 5,
-                }
-            );
-            drawingUtils.drawLandmarks(landmarks, {
-                color: "#FF0000",
-                lineWidth: 2,
-            });
+            drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, { color: "#00FF00", lineWidth: 5 });
+            drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 2 });
         }
     }
     canvasCtx.restore();
     
-    // --- LÓGICA MELHORADA PARA EXIBIR MÚLTIPLAS MÃOS ---
+    // --- LÓGICA DE EXIBIÇÃO COM A CORREÇÃO APLICADA ---
     if (results.gestures.length > 0) {
         gestureOutput.style.display = "block";
-        gestureOutput.style.width = video.videoWidth + "px";
-        
         let outputText = "";
-        // Loop através de cada mão detectada
+
         for (let i = 0; i < results.gestures.length; i++) {
             const categoryName = results.gestures[i][0].categoryName;
-            const categoryScore = parseFloat(
-              results.gestures[i][0].score * 100
-            ).toFixed(2);
-            const handedness = results.handednesses[i][0].displayName;
+            const categoryScore = parseFloat(results.gestures[i][0].score * 100).toFixed(2);
+            let handedness = results.handednesses[i][0].displayName;
+
+            // *** AQUI ESTÁ A CORREÇÃO PRINCIPAL ***
+            // Inverte a etiqueta para corresponder à visão do usuário na imagem espelhada.
+            if (handedness === "Left") {
+                handedness = "Direita";
+            } else if (handedness === "Right") {
+                handedness = "Esquerda";
+            }
 
             outputText += `Mão: ${handedness}\nGesto: ${categoryName}\nConfiança: ${categoryScore} %\n\n`;
         }
@@ -131,7 +117,7 @@ async function predictWebcam() {
     } else {
         gestureOutput.style.display = "none";
     }
-    // Chame esta função novamente para continuar prevendo quando o navegador estiver pronto.
+
     if (webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }
