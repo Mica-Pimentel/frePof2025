@@ -67,7 +67,7 @@ let lastVideoTime = -1;
 let results = undefined;
 async function predictWebcam() {
     const webcamElement = document.getElementById("webcam");
-    // Now let's start detecting the stream.
+    // Agora vamos começar a detectar o stream.
     if (runningMode === "IMAGE") {
         runningMode = "VIDEO";
         await gestureRecognizer.setOptions({ runningMode: "VIDEO" });
@@ -77,19 +77,31 @@ async function predictWebcam() {
         lastVideoTime = video.currentTime;
         results = gestureRecognizer.recognizeForVideo(video, nowInMs);
     }
+
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     const drawingUtils = new DrawingUtils(canvasCtx);
-    canvasElement.style.height = videoHeight;
-    webcamElement.style.height = videoHeight;
-    canvasElement.style.width = videoWidth;
-    webcamElement.style.width = videoWidth;
+
+    // Ajusta o tamanho do canvas para o tamanho real do vídeo
+    canvasElement.style.height = video.videoHeight + "px";
+    webcamElement.style.height = video.videoHeight + "px";
+    canvasElement.style.width = video.videoWidth + "px";
+    webcamElement.style.width = video.videoWidth + "px";
+    
+    // Define as dimensões do canvas para desenho
+    canvasElement.width = video.videoWidth;
+    canvasElement.height = video.videoHeight;
+
     if (results.landmarks) {
         for (const landmarks of results.landmarks) {
-            drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, {
-                color: "#00FF00",
-                lineWidth: 5,
-            });
+            drawingUtils.drawConnectors(
+                landmarks,
+                GestureRecognizer.HAND_CONNECTIONS,
+                {
+                    color: "#00FF00",
+                    lineWidth: 5,
+                }
+            );
             drawingUtils.drawLandmarks(landmarks, {
                 color: "#FF0000",
                 lineWidth: 2,
@@ -97,18 +109,29 @@ async function predictWebcam() {
         }
     }
     canvasCtx.restore();
+    
+    // --- LÓGICA MELHORADA PARA EXIBIR MÚLTIPLAS MÃOS ---
     if (results.gestures.length > 0) {
         gestureOutput.style.display = "block";
-        gestureOutput.style.width = videoWidth;
-        const categoryName = results.gestures[0][0].categoryName;
-        const categoryScore = parseFloat(results.gestures[0][0].score * 100).toFixed(2);
-        const handedness = results.handednesses[0][0].displayName;
-        gestureOutput.innerText = `GestureRecognizer: ${categoryName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
-    }
-    else {
+        gestureOutput.style.width = video.videoWidth + "px";
+        
+        let outputText = "";
+        // Loop através de cada mão detectada
+        for (let i = 0; i < results.gestures.length; i++) {
+            const categoryName = results.gestures[i][0].categoryName;
+            const categoryScore = parseFloat(
+              results.gestures[i][0].score * 100
+            ).toFixed(2);
+            const handedness = results.handednesses[i][0].displayName;
+
+            outputText += `Mão: ${handedness}\nGesto: ${categoryName}\nConfiança: ${categoryScore} %\n\n`;
+        }
+        gestureOutput.innerText = outputText;
+
+    } else {
         gestureOutput.style.display = "none";
     }
-    // Call this function again to keep predicting when the browser is ready.
+    // Chame esta função novamente para continuar prevendo quando o navegador estiver pronto.
     if (webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }
