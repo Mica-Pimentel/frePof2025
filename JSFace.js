@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // modelo que fornece landmarks (landmarker task)
           modelAssetPath:
             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "GPU" // troque para "CPU" se necessário
+          delegate: "CPU" // troque para "CPU" se necessário
         },
         runningMode: runningMode,
         numFaces: 1 // ajustar conforme necessidade
