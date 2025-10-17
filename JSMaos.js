@@ -1,17 +1,17 @@
 import { GestureRecognizer, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
 
-
-
 const demosSection = document.getElementById("demos");
 let gestureRecognizer;
-let runningMode = "VIDEO"; // Mudado para VIDEO para consistência
+let runningMode = "VIDEO";
 let enableWebcamButton;
 let webcamRunning = false;
 
 const video = document.getElementById("webcam");
 const canvasElement = document.getElementById("output_canvas");
 const canvasCtx = canvasElement.getContext("2d");
-const gestureOutput = document.getElementById("gesture_output");
+
+// ALTERADO: Apontando para o novo parágrafo no HTML
+const gestureOutput = document.getElementById("hand_gesture_output");
 
 // Função para criar o reconhecedor de gestos
 const createGestureRecognizer = async () => {
@@ -50,7 +50,8 @@ function enableCam(event) {
         webcamRunning = false;
         enableWebcamButton.innerText = "ENABLE PREDICTIONS";
         video.srcObject.getTracks().forEach(track => track.stop());
-        gestureOutput.style.display = "none";
+        // ALTERADO: Apenas limpa o texto ao desativar
+        gestureOutput.innerText = ""; 
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
     } else {
@@ -67,8 +68,7 @@ function enableCam(event) {
 let lastVideoTime = -1;
 let results = undefined;
 async function predictWebcam() {
-    // Agora vamos começar a detectar o stream.
-    if (runningMode === "IMAGE") { // Garante que o modo está correto
+    if (runningMode === "IMAGE") {
         runningMode = "VIDEO";
         await gestureRecognizer.setOptions({ runningMode: "VIDEO" });
     }
@@ -82,7 +82,6 @@ async function predictWebcam() {
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     const drawingUtils = new DrawingUtils(canvasCtx);
 
-    // Ajusta o tamanho do canvas para o tamanho real do vídeo
     canvasElement.height = video.videoHeight;
     canvasElement.width = video.videoWidth;
 
@@ -94,9 +93,8 @@ async function predictWebcam() {
     }
     canvasCtx.restore();
     
-    // --- LÓGICA DE EXIBIÇÃO COM A CORREÇÃO APLICADA ---
+    // --- LÓGICA DE EXIBIÇÃO SIMPLIFICADA ---
     if (results.gestures.length > 0) {
-        gestureOutput.style.display = "block";
         let outputText = "";
 
         for (let i = 0; i < results.gestures.length; i++) {
@@ -104,20 +102,20 @@ async function predictWebcam() {
             const categoryScore = parseFloat(results.gestures[i][0].score * 100).toFixed(2);
             let handedness = results.handednesses[i][0].displayName;
 
-            // *** AQUI ESTÁ A CORREÇÃO PRINCIPAL ***
-            // Inverte a etiqueta para corresponder à visão do usuário na imagem espelhada.
             if (handedness === "Left") {
                 handedness = "Direita";
             } else if (handedness === "Right") {
                 handedness = "Esquerda";
             }
 
+            // O "\n" cria uma nova linha no texto
             outputText += `Mão: ${handedness}\nGesto: ${categoryName}\nConfiança: ${categoryScore} %\n\n`;
         }
         gestureOutput.innerText = outputText;
 
     } else {
-        gestureOutput.style.display = "none";
+        // ALTERADO: Apenas limpa o texto se nenhuma mão for detectada
+        gestureOutput.innerText = "Aguardando detecção...";
     }
 
     if (webcamRunning === true) {
