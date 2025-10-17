@@ -1,5 +1,3 @@
-// JSFace.js - VERSÃO CORRIGIDA
-
 import { FaceLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -7,15 +5,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const video = document.getElementById("webcam");
     const enableWebcamButton = document.getElementById("webcamButton");
     
-    // Obtenha o canvas e seu contexto 2D
     const canvasElement = document.getElementById("output_canvas");
     const canvasCtx = canvasElement.getContext("2d");
+    
+    // Elemento para mostrar a expressão
+    const expressionOutput = document.getElementById("expression_output");
 
     let faceLandmarker = null;
     let runningMode = "VIDEO";
     let webcamRunning = false;
     let lastVideoTime = -1;
 
+    // Função para inicializar o modelo FaceLandmarker
     const initialize = async () => {
         const vision = await FilesetResolver.forVisionTasks(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
@@ -26,12 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
                     delegate: "GPU"
                 },
-                outputFaceBlendshapes: true,
+                outputFaceBlendshapes: true, // Habilitado para obter dados de expressão
                 runningMode: runningMode,
                 numFaces: 1
             });
             demosSection.classList.remove("invisible");
-            console.log("FaceLandmarker pronto");
         } catch (err) {
             console.error("Erro inicializando FaceLandmarker:", err);
             alert("Erro ao carregar modelo. Verifique o console.");
@@ -43,10 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (hasGetUserMedia()) {
         enableWebcamButton.addEventListener("click", enableCam);
-    } else {
-        console.warn("getUserMedia() não é suportado pelo seu navegador");
     }
 
+    // Função para ligar/desligar a webcam
     function enableCam() {
         if (!faceLandmarker) {
             alert("Modelo ainda carregando. Aguarde.");
@@ -55,13 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (webcamRunning) {
             webcamRunning = false;
-            enableWebcamButton.innerText = "ENABLE WEBCAM";
+            enableWebcamButton.innerText = "ATIVAR WEBCAM";
             video.srcObject.getTracks().forEach(track => track.stop());
+            expressionOutput.innerText = "";
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height); // Limpa o canvas
             return;
         }
 
         webcamRunning = true;
-        enableWebcamButton.innerText = "DISABLE WEBCAM";
+        enableWebcamButton.innerText = "DESATIVAR WEBCAM";
 
         const constraints = { video: true };
         navigator.mediaDevices.getUserMedia(constraints)
@@ -74,8 +75,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
+    // Loop de predição contínuo
     async function predictWebcam() {
-        // Ajusta o tamanho do canvas para ser igual ao do vídeo
         canvasElement.width = video.videoWidth;
         canvasElement.height = video.videoHeight;
         
@@ -88,7 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (lastVideoTime !== video.currentTime) {
             lastVideoTime = video.currentTime;
             const results = faceLandmarker.detectForVideo(video, startTimeMs);
+            
             displayVideoDetections(results);
+            displayExpression(results.faceBlendshapes);
         }
 
         if (webcamRunning) {
@@ -96,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Função para desenhar a malha do rosto
     function displayVideoDetections(results) {
         const drawingUtils = new DrawingUtils(canvasCtx);
         canvasCtx.save();
@@ -103,19 +107,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (results.faceLandmarks) {
             for (const landmarks of results.faceLandmarks) {
-                // Desenha as conexões (a malha do rosto)
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, {
-                    color: "#C0C0C070",
-                    lineWidth: 1
-                });
-                // Desenha as linhas dos olhos, sobrancelhas e lábios
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, { color: "#FF3030" });
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW, { color: "#FF3030" });
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, { color: "#30FF30" });
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW, { color: "#30FF30" });
-                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LIPS, { color: "#E0E0E0" });
+                drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });
             }
         }
         canvasCtx.restore();
+    }
+
+    // Função para interpretar e exibir a expressão
+    function displayExpression(blendshapes) {
+        if (!blendshapes || blendshapes.length === 0) {
+            expressionOutput.innerText = "Nenhum rosto detectado";
+            return;
+        }
+
+        const categories = blendshapes[0].categories;
+        
+        let expression = "Neutro";
+        const threshold = 0.5; // Limite para considerar uma expressão
+
+        const smileScore = (categories.find(c => c.categoryName === 'mouthSmileLeft')?.score ?? 0) + (categories.find(c => c.categoryName === 'mouthSmileRight')?.score ?? 0);
+        const jawOpenScore = categories.find(c => c.categoryName === 'jawOpen')?.score ?? 0;
+        const browDownScore = (categories.find(c => c.categoryName === 'browDownLeft')?.score ?? 0) + (categories.find(c => c.categoryName === 'browDownRight')?.score ?? 0);
+
+        if (smileScore > threshold) {
+            expression = "Feliz 😄";
+        } else if (jawOpenScore > 0.6) {
+            expression = "Surpreso 😮";
+        } else if (browDownScore > threshold) {
+            expression = "Bravo 😠";
+        }
+        
+        expressionOutput.innerText = `Expressão: ${expression}`;
     }
 });
