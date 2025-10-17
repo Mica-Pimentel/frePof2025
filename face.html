@@ -10,13 +10,16 @@
 <body>
     <section id="demos" class="invisible">
   <h1>Face detection</h1>
-  <div id="liveView" class="videoView">
-    <button id="webcamButton" class="mdc-button mdc-button--raised">
-      <span class="mdc-button__ripple"></span>
-      <span class="mdc-button__label">ENABLE WEBCAM</span>
-    </button>
+ <div id="liveView" class="videoView">
+  <button id="webcamButton" class="mdc-button mdc-button--raised">
+    <span class="mdc-button__ripple"></span>
+    <span class="mdc-button__label">ENABLE WEBCAM</span>
+  </button>
+  <div style="position: relative;">
     <video id="webcam" autoplay playsinline></video>
+    <canvas class="output_canvas" id="output_canvas"></canvas> 
   </div>
+</div>
 </section>
 </body>
 </html>
